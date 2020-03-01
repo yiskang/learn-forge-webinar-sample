@@ -11,7 +11,6 @@
     <Folder Include="wwwroot\js\" />
   </ItemGroup>
   <ItemGroup>
-    <Content Remove="wwwroot\js\ForgeTree.js" />
     <Content Remove="wwwroot\js\ForgeViewer.js" />
   </ItemGroup>
   <ItemGroup>
