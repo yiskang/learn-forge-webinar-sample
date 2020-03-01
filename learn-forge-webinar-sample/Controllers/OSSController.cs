@@ -1,4 +1,5 @@
-﻿using Autodesk.Forge;
+﻿
+using Autodesk.Forge;
 using Autodesk.Forge.Model;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -23,7 +24,36 @@ namespace learn_forge_webinar_sample.Controllers
         [Route("api/forge/oss/buckets")]
         public async Task<IList<TreeNode>> GetOSSAsync(string id)
         {
+            IList<TreeNode> nodes = new List<TreeNode>();
+            dynamic oauth = await OAuthController.GetInternalAsync();
 
+            if (id == "#") // root
+            {
+                // in this case, let's return all buckets
+                BucketsApi appBckets = new BucketsApi();
+                appBckets.Configuration.AccessToken = oauth.access_token;
+
+                // to simplify, let's return only the first 100 buckets
+                dynamic buckets = await appBckets.GetBucketsAsync("US", 100);
+                foreach (KeyValuePair<string, dynamic> bucket in new DynamicDictionaryItems(buckets.items))
+                {
+                    nodes.Add(new TreeNode(bucket.Value.bucketKey, bucket.Value.bucketKey.Replace(ClientId + "-", string.Empty), "bucket", true));
+                }
+            }
+            else
+            {
+                // as we have the id (bucketKey), let's return all 
+                ObjectsApi objects = new ObjectsApi();
+                objects.Configuration.AccessToken = oauth.access_token;
+                var objectsList = objects.GetObjects(id);
+                foreach (KeyValuePair<string, dynamic> objInfo in new DynamicDictionaryItems(objectsList.items))
+                {
+                    nodes.Add(new TreeNode(Base64Encode((string)objInfo.Value.objectId),
+                      objInfo.Value.objectKey, "object", false));
+                }
+            }
+
+            return nodes;
         }
 
         /// <summary>
@@ -52,7 +82,12 @@ namespace learn_forge_webinar_sample.Controllers
         [Route("api/forge/oss/buckets")]
         public async Task<dynamic> CreateBucket([FromBody]CreateBucketModel bucket)
         {
-
+            BucketsApi buckets = new BucketsApi();
+            dynamic token = await OAuthController.GetInternalAsync();
+            buckets.Configuration.AccessToken = token.access_token;
+            PostBucketsPayload bucketPayload = new PostBucketsPayload(string.Format("{0}-{1}", ClientId, bucket.bucketKey.ToLower()), null,
+              PostBucketsPayload.PolicyKeyEnum.Transient);
+            return await buckets.CreateBucketAsync(bucketPayload, "US");
         }
 
         /// <summary>
@@ -71,7 +106,30 @@ namespace learn_forge_webinar_sample.Controllers
         [Route("api/forge/oss/objects")]
         public async Task<dynamic> UploadObject([FromForm]UploadFile input)
         {
+            // save the file on the server
+            var fileSavePath = Path.Combine(_env.ContentRootPath, input.fileToUpload.FileName);
+            using (var stream = new FileStream(fileSavePath, FileMode.Create))
+                await input.fileToUpload.CopyToAsync(stream);
 
+
+            // get the bucket...
+            dynamic oauth = await OAuthController.GetInternalAsync();
+            ObjectsApi objects = new ObjectsApi();
+            objects.Configuration.AccessToken = oauth.access_token;
+
+            // upload the file/object, which will create a new object
+            dynamic uploadedObj;
+            using (StreamReader streamReader = new StreamReader(fileSavePath))
+            {
+                uploadedObj = await objects.UploadObjectAsync(input.bucketKey,
+                       input.fileToUpload.FileName, (int)streamReader.BaseStream.Length, streamReader.BaseStream,
+                       "application/octet-stream");
+            }
+
+            // cleanup
+            System.IO.File.Delete(fileSavePath);
+
+            return uploadedObj;
         }
 
         public class UploadFile

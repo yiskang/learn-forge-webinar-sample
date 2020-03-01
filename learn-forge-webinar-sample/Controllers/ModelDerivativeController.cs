@@ -18,7 +18,7 @@ namespace learn_forge_webinar_sample.Controllers
         [Route("api/forge/modelderivative/jobs")]
         public async Task<dynamic> TranslateObject([FromBody]TranslateObjectModel objModel)
         {
-
+            return null;
         }
 
         /// <summary>
