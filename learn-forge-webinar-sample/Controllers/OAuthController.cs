@@ -22,7 +22,12 @@ namespace learn_forge_webinar_sample.Controllers
         [Route("api/forge/oauth/token")]
         public async Task<dynamic> GetPublicAsync()
         {
-            return null;
+            if (PublicToken == null || PublicToken.ExpiresAt < DateTime.UtcNow)
+            {
+                PublicToken = await Get2LeggedTokenAsync(new Scope[] { Scope.ViewablesRead });
+                PublicToken.ExpiresAt = DateTime.UtcNow.AddSeconds(PublicToken.expires_in);
+            }
+            return PublicToken;
         }
 
         /// <summary>
