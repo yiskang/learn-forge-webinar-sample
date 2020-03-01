@@ -11,10 +11,10 @@
     <Folder Include="wwwroot\js\" />
   </ItemGroup>
   <ItemGroup>
-    <Content Remove="wwwroot\js\ForgeViewer.js" />
-  </ItemGroup>
-  <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="3.1.2" />
     <PackageReference Include="Autodesk.Forge" Version="1.6.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Remove="wwwroot\js\ForgeViewer.js" />
   </ItemGroup>
 </Project>
